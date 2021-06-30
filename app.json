@@ -29,6 +29,10 @@
       "description": "Get your api id from http://my.telegram.org/",
       "value": "xxxxxxxx"
     },
+    "AUTH_CHAT": {
+      "description": "Authorize chats, where bot will work. Use Space",
+      "value": "871967943 1291911714 -1001348584170"
+    },
     "BOT_TOKEN": {
       "description": "Get your bot token from @BotFather",
       "value": "xxxxxxxx"
