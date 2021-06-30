@@ -13,7 +13,7 @@ Or, you can prevent ideling your app by adding your url on http://kaffeine.herok
 So basically Tortoolkit is aimed to be most versatile torrent leecher and Youtube-DL bot for telegram. This bot is highly customizeable and to customize this bot you dont need to restart the bot everytime. 
 The bot gets started with minimum variables and others can be set as and when needed using the /settings
 
-## Working Demo Group:- [Group Link](https://t.me/TorToolKit) 
+## Working Demo Group:- [Group Link](https://telegram.dog/deepakcloudstorrent) 
 
 ## As This is a first release of this project the installation is a bit lengthy but takes less than 10 mins.
 ## In subsequent releases i will try to make one click install 
