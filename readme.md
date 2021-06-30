@@ -4,7 +4,7 @@
 
 # Depoy To Heroku
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://github.com/deepakcloudsoffical/Deepak-Clouds-Tortoolkit-Leech-Mirror/tree/heroku)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/deepakcloudsoffical/Deepak-Clouds-Tortoolkit-Leech-Mirror/tree/heroku)
 
 # Features
 Following are some awesome features offered by this bot:-
