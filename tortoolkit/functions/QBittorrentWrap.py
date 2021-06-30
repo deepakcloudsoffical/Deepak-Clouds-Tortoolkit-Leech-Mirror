@@ -187,7 +187,7 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
             msg = "<b>Downloading:</b> <code>{}</code>\n".format(
                 tor_info.name
                 )
-            msg += "<b>Down:</b> {} <b>Up:</b> {}\n".format(
+            msg += "<b>⚡️Downloading Speed:</b> {} <b>⚡️Uploading Speed:</b> {}\n".format(
                 human_readable_bytes(tor_info.dlspeed,postfix="/s"),
                 human_readable_bytes(tor_info.upspeed,postfix="/s")
                 )
