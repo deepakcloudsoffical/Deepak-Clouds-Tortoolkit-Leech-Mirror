@@ -6,6 +6,27 @@
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/devillD/TorToolkit-Telegram/tree/heroku)
 
+# Features
+Following are some awesome features offered by this bot:-
+- Using the best torrent client to deal with torrent : [Ec3 AWS Amazon](https://github.com/qbittorrent/qBittorrent)
+- You can choose which files you want to download from the torrent.
+- A glorious settings menu from you can control the bot.
+- If the bot is in the group, the users have their own settings like:
+  - Permanent thumbnail support.
+  - Users can choose if they want a file or video.
+  - Load in their own rclone config so that the torrent/direct link is uploaded to their drive. (Work in Progress)
+- Extraction of ZIP, TAR, ISO, RAR wih and without password. If you chose to extarct the archive and you enter the password wrong it will prompt you to enter the password upto 3 times after that zip will be uploaded as it is.
+- G Drive Index support.
+- Admins can put hard limits on the max torrent size and max youtube playlist size.
+- Aria2 for direct links download.
+- Upload to gdrive by using RCLONE.
+  - You can load multiple drives in the conf and can switch on fly using the settings.
+- Sorted YTDL download menu.
+- Zip and upload also available.
+- Get the server status.
+- InstaDL support
+- Browse the settings menu and try stuff. ;)
+
 # Note
 Everytime before you leech, you need to visite the app url to startup the bot from idling
 
