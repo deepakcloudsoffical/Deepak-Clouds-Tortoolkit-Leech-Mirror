@@ -1,0 +1,97 @@
+{
+    "name": "TorToolkit-Telegram",
+    "description": "Telegram leecher bot with python",
+    "logo": "https://raw.githubusercontent.com/devillD/TorToolkit-Telegram/heroku/toolkit.jpg",
+    "keywords": [
+      "telegram",
+      "bot",
+      "qBittorrent",
+      "python"
+    ],
+    "addons": [
+    {
+      "plan": "heroku-postgresql",
+      "options": {
+        "version": "13"
+        }
+      }
+    ],
+    "repository": "https://github.com/devillD/TorToolkit-Telegram",
+    "website": "https://github.com/devillD/TorToolkit-Telegram/tree/heroku",
+    "success_url": "https://github.com/devillD/TorToolkit-Telegram/blob/heroku/readme.md",
+    "stack": "container",
+    "env": {
+    "API_HASH": {
+      "description": "Get your api hash from http://my.telegram.org/",
+      "value": "xxxxxxxxxxxx"
+    },
+    "API_ID": {
+      "description": "Get your api id from http://my.telegram.org/",
+      "value": "xxxxxxxx"
+    },
+    "BOT_TOKEN": {
+      "description": "Get your bot token from @BotFather",
+      "value": "xxxxxxxx"
+    },
+    "BASE_URL": {
+      "description": "Base URL for selecting torrent file",
+      "value": "<your app name>.herokuapp.com"
+    },
+    "LEECH_CMD": {
+      "description": "Leech command",
+      "value": "leech"
+    },
+    "PURGE_CMD": {
+      "description": "Purge command",
+      "value": "purge"
+    },
+    "PAUSEALL_CMD": {
+      "description": "Pauseall command",
+      "value": "pauseall"
+    },
+    "RESUMEALL_CMD": {
+      "description": "Resumeall command",
+      "value": "resumeall"
+    },
+    "STATUS_CMD": {
+      "description": "Status command",
+      "value": "status"
+    },
+    "SETTINGS_CMD": {
+      "description": "Admin Settings command",
+      "value": "settings"
+    },
+    "EXEC_CMD": {
+      "description": "execute command",
+      "value": "exec"
+    },
+    "UPLOAD_CMD": {
+      "description": "Upload command",
+      "value": "upload"
+    },
+    "YTDL": {
+      "description": "Youtube Download command",
+      "value": "ytdl"
+    },
+    "PYTDL": {
+      "description": "PlayList of youtube download command",
+      "value": "pytdl"
+    },
+    "ABOUT_CMD": {
+      "description": "About command",
+      "value": "about"
+    },
+    "GETLOGS_CMD": {
+      "description": "GetLog command",
+      "value": "getlogs"
+    },
+    "SERVER_CMD": {
+      "description": "Get server info command",
+      "value": "server"
+    },
+    "USERSETTINGS_CMD": {
+      "description": "User Settings command",
+      "value": "uset"
+    }
+  }
+}
