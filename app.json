@@ -1,7 +1,7 @@
 {
     "name": "TorToolkit-Telegram",
     "description": "Telegram leecher bot with python",
-    "logo": "https://raw.githubusercontent.com/devillD/TorToolkit-Telegram/heroku/toolkit.jpg",
+    "logo": "https://imagetot.com/images/2021/06/28/e8155fe3d87a1084d7cda5f4ecc5211c.jpg",
     "keywords": [
       "telegram",
       "bot",
@@ -16,9 +16,9 @@
         }
       }
     ],
-    "repository": "https://github.com/devillD/TorToolkit-Telegram",
-    "website": "https://github.com/devillD/TorToolkit-Telegram/tree/heroku",
-    "success_url": "https://github.com/devillD/TorToolkit-Telegram/blob/heroku/readme.md",
+    "repository": "https://github.com/deepakcloudsoffical/Deepak-Clouds-Tortoolkit-Leech-Mirror",
+    "website": "https://github.com/deepakcloudsoffical/Deepak-Clouds-Tortoolkit-Leech-Mirror/tree/heroku",
+    "success_url": "https://github.com/deepakcloudsoffical/Deepak-Clouds-Tortoolkit-Leech-Mirror/blob/heroku/readme.md",
     "stack": "container",
     "env": {
     "API_HASH": {
