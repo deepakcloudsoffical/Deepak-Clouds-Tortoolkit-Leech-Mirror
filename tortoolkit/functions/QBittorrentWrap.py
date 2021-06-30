@@ -195,7 +195,7 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
                 progress_bar(tor_info.progress),
                 round(tor_info.progress*100,2)
                 )
-            msg += "<b>Downloaded:</b> {} of {}\n".format(
+            msg += "<b>😻Downloaded:</b> {} of {}\n".format(
                 human_readable_bytes(tor_info.downloaded),
                 human_readable_bytes(tor_info.total_size)
                 )
