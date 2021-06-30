@@ -191,7 +191,7 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
                 human_readable_bytes(tor_info.dlspeed,postfix="/s"),
                 human_readable_bytes(tor_info.upspeed,postfix="/s")
                 )
-            msg += "<b>Progress:</b> {} - {}%\n".format(
+            msg += "<b>📝Progress:</b> {} - {}%\n".format(
                 progress_bar(tor_info.progress),
                 round(tor_info.progress*100,2)
                 )
@@ -199,13 +199,13 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
                 human_readable_bytes(tor_info.downloaded),
                 human_readable_bytes(tor_info.total_size)
                 )
-            msg += "<b>ETA:</b> <b>{} Mins</b>\n".format(
+            msg += "<b>⏱ETA:</b> <b>{} Mins</b>\n".format(
                 human_readable_timedelta(tor_info.eta)
                 )
-            msg += "<b>S:</b>{} <b>L:</b>{}\n".format(
+            msg += "<b>🌾Seeders:</b>{} <b>🥀Peers:</b>{}\n".format(
                 tor_info.num_seeds,tor_info.num_leechs
                 )
-            msg += "<b>Using engine:</b> <code>qBittorrent</code>"
+            msg += "<b>⚙️Using engine:</b> <code>EC3 AWS Amazon</code>"
             
             #error condition
             try:
