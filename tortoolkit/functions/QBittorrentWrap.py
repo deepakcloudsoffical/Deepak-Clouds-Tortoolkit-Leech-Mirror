@@ -205,7 +205,7 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
             msg += "<b>🌾Seeders:</b>{} <b>🥀Peers:</b>{}\n".format(
                 tor_info.num_seeds,tor_info.num_leechs
                 )
-            msg += "<b>⚙️Using engine:</b> <code>EC3 AWS Amazon</code>"
+            msg += "<b>⚙️Using engine:</b> <code>qBittorrent</code>"
             
             #error condition
             try:
