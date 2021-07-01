@@ -29,12 +29,12 @@ async def handle_user_setting_callback(e):
     db = tordb
     sender_id = str(e.sender_id)
 
-    
+
     data = e.data.decode()
     cmd = data.split(" ")
-    
+
     val = ""
-    
+
     if cmd[-1] != sender_id:
         print("Sender id",sender_id," - - ",cmd[-1])
         await e.answer("Dont touch sender dosent match.",alert=True)
@@ -55,8 +55,8 @@ async def handle_user_setting_callback(e):
         mmes = await e.get_message()
         await mmes.edit(f"{mmes.raw_text}\n/ignore to go back",buttons=None)
         val = await get_value(e,True)
-        
-        await general_input_manager(e,mmes,"RCLONE_CONFIG","str",val,sender_id,"rclonemenu")  
+
+        await general_input_manager(e,mmes,"RCLONE_CONFIG","str",val,sender_id,"rclonemenu")
     elif cmd[1] == "setthumb":
         await e.answer("Send the thumbnail.", alert=True)
         mmes = await e.get_message()
@@ -78,20 +78,12 @@ async def handle_user_setting_callback(e):
         await handle_user_settings(mmes,True,sender_id=sender_id)
     elif cmd[1] == "fdocs":
         await e.answer("")
-        if cmd[2] == "true":
-            val = True
-        else:
-            val = False
-        
+        val = cmd[2] == "true"
         user_db.set_var("FORCE_DOCUMENTS",val, str(e.sender_id))
         await handle_user_settings(await e.get_message(),True,f"<b><u>Changed the value to {val} of force documents.</b></u>",sender_id=sender_id)
     elif cmd[1] == "disablethumb":
         await e.answer("")
-        if cmd[2] == "true":
-            val = True
-        else:
-            val = False
-        
+        val = cmd[2] == "true"
         user_db.set_var("DISABLE_THUMBNAIL",val, str(e.sender_id))
         await handle_user_settings(await e.get_message(),True,f"<b><u>Changed the value to {val} of disable thumbnail.</b></u>",sender_id=sender_id, submenu="thumbmenu")
 
@@ -103,11 +95,11 @@ async def handle_user_settings(e,edit=False,msg="",submenu=None,sender_id=None):
     if sender_id is None:
         sender_id=e.sender_id
     session_id=None
-    
+
     menu = [
         #[KeyboardButtonCallback(yes+" Allow TG Files Leech123456789-","settings data".encode("UTF-8"))], # for ref
     ]
-    
+
     if submenu is None:
         await get_bool_variable("FORCE_DOCUMENTS","FORCE_DOCUMENTS",menu,"fdocs",sender_id)#
         #await get_string_variable("RCLONE_CONFIG",menu,"rcloneconfig",session_id)
@@ -125,30 +117,28 @@ async def handle_user_settings(e,edit=False,msg="",submenu=None,sender_id=None):
             rmess = await e.reply(header+"\nEnjoiii.\n",parse_mode="html",buttons=menu,link_preview=False, file="toolkit.jpg")
     elif submenu == "rclonemenu":
         rcval = await get_string_variable("RCLONE_CONFIG",menu,"rcloneconfig",sender_id)
-        if rcval != "None":
-            # create a all drives menu
-            if not "not loaded" in rcval:
-                
-                path = user_db.get_rclone(sender_id)
-                
-                conf = configparser.ConfigParser()
-                conf.read(path)
-                #menu.append([KeyboardButton("Choose a default drive from below")])
-                def_drive = user_db.get_var("DEF_RCLONE_DRIVE", sender_id)
+        if rcval != "None" and "not loaded" not in rcval:
 
-                for j in conf.sections():
-                    prev=""
-                    if j == def_drive:
-                        prev = yes
+            path = user_db.get_rclone(sender_id)
 
-                    if "team_drive" in list(conf[j]):
-                        menu.append(
-                            [KeyboardButtonCallback(f"{prev}{j} - TD",f"usettings change_drive {j} {sender_id}")]
-                        )
-                    else:
-                        menu.append(
-                            [KeyboardButtonCallback(f"{prev}{j} - ND",f"usettings change_drive {j} {sender_id}")]
-                        )
+            conf = configparser.ConfigParser()
+            conf.read(path)
+            #menu.append([KeyboardButton("Choose a default drive from below")])
+            def_drive = user_db.get_var("DEF_RCLONE_DRIVE", sender_id)
+
+            for j in conf.sections():
+                prev=""
+                if j == def_drive:
+                    prev = yes
+
+                if "team_drive" in list(conf[j]):
+                    menu.append(
+                        [KeyboardButtonCallback(f"{prev}{j} - TD",f"usettings change_drive {j} {sender_id}")]
+                    )
+                else:
+                    menu.append(
+                        [KeyboardButtonCallback(f"{prev}{j} - ND",f"usettings change_drive {j} {sender_id}")]
+                    )
 
         await get_sub_menu("Go Back ⬅️","mainmenu",sender_id,menu)
         menu.append(
@@ -182,70 +172,69 @@ async def handle_user_settings(e,edit=False,msg="",submenu=None,sender_id=None):
 
 # an attempt to manager all the input
 async def general_input_manager(e,mmes,var_name,datatype,value,sender_id,sub_menu):
-    if value is not None and not "ignore" in value:
+    if value is not None and "ignore" not in value:
         await confirm_buttons(mmes,value)
         conf = await get_confirm(e)
-        if conf is not None:
-            if conf:
-                try:
-                    if datatype == "int":
-                        value = int(value)
-                    if datatype == "str":
-                        value = str(value)
-                    if datatype == "bool":
-                        if value.lower() == "true":
-                            value = True
-                        elif value.lower() == "false":
-                            value = False
-                        else:
-                            raise ValueError("Invalid value from bool")
-                    
-                    if var_name == "RCLONE_CONFIG":
-                        #adjust the special case
-                        try:
-                            conf = configparser.ConfigParser()
-                            conf.read(value)
-                            for i in conf.sections():
-                                user_db.set_var("DEF_RCLONE_DRIVE",str(i), e.sender_id)
-                                break
-                                
-                            with open(value,"rb") as fi:
-                                data = fi.read()
-                                user_db.set_rclone(data, e.sender_id)
-                            os.remove(value)
-                            #db.set_variable("LEECH_ENABLED",True)
-                            #SessionVars.update_var("LEECH_ENABLED",True)
-                        except Exception:
-                            torlog.error(traceback.format_exc())
-                            await handle_user_settings(mmes,True,f"<b><u>The conf file is invalid check logs.</b></u>",sub_menu)
-                            return
-                    elif var_name == "THUMBNAIL":
-                        try:
-                            im = Image.open(value)
-                            im.convert("RGB").save(value,"JPEG")
-                            im = Image.open(value)
-                            im.thumbnail((320,320), Image.ANTIALIAS)
-                            im.save(value,"JPEG")
-                            with open(value,"rb") as fi:
-                                data = fi.read()
-                                user_db.set_thumbnail(data, e.sender_id)
-                            os.remove(value)
-                        except Exception:
-                            torlog.error(traceback.format_exc())
-                            await handle_user_settings(mmes,True,f"<b><u>Error in the thumbnail you sent.</b></u>",sub_menu)
-                            return
-                    else:
-                        user_db.set_var(var_name, value, e.sender_id)
-                        #db.set_variable(var_name,value)
-                        #SessionVars.update_var(var_name,value)
-                    
-                    await handle_user_settings(mmes,True,f"<b><u>Received {var_name} value '{value}' with confirm.</b></u>",sub_menu, sender_id=sender_id)
-                except ValueError:
-                    await handle_user_settings(mmes,True,f"<b><u>Value [{value}] not valid try again and enter {datatype}.</b></u>",sub_menu, sender_id=sender_id)    
-            else:
-                await handle_user_settings(mmes,True,f"<b><u>Confirm differed by user.</b></u>",sub_menu, sender_id=sender_id)
-        else:
+        if conf is None:
             await handle_user_settings(mmes,True,f"<b><u>Confirm timed out [waited 60s for input].</b></u>",sub_menu, sender_id=sender_id)
+        elif conf:
+            try:
+                if datatype == "int":
+                    value = int(value)
+                if datatype == "str":
+                    value = str(value)
+                if datatype == "bool":
+                    if value.lower() == "true":
+                        value = True
+                    elif value.lower() == "false":
+                        value = False
+                    else:
+                        raise ValueError("Invalid value from bool")
+
+                if var_name == "RCLONE_CONFIG":
+                    #adjust the special case
+                    try:
+                        conf = configparser.ConfigParser()
+                        conf.read(value)
+                        for i in conf.sections():
+                            user_db.set_var("DEF_RCLONE_DRIVE",str(i), e.sender_id)
+                            break
+
+                        with open(value,"rb") as fi:
+                            data = fi.read()
+                            user_db.set_rclone(data, e.sender_id)
+                        os.remove(value)
+                        #db.set_variable("LEECH_ENABLED",True)
+                        #SessionVars.update_var("LEECH_ENABLED",True)
+                    except Exception:
+                        torlog.error(traceback.format_exc())
+                        await handle_user_settings(mmes,True,f"<b><u>The conf file is invalid check logs.</b></u>",sub_menu)
+                        return
+                elif var_name == "THUMBNAIL":
+                    try:
+                        im = Image.open(value)
+                        im.convert("RGB").save(value,"JPEG")
+                        im = Image.open(value)
+                        im.thumbnail((320,320), Image.ANTIALIAS)
+                        im.save(value,"JPEG")
+                        with open(value,"rb") as fi:
+                            data = fi.read()
+                            user_db.set_thumbnail(data, e.sender_id)
+                        os.remove(value)
+                    except Exception:
+                        torlog.error(traceback.format_exc())
+                        await handle_user_settings(mmes,True,f"<b><u>Error in the thumbnail you sent.</b></u>",sub_menu)
+                        return
+                else:
+                    user_db.set_var(var_name, value, e.sender_id)
+                    #db.set_variable(var_name,value)
+                    #SessionVars.update_var(var_name,value)
+
+                await handle_user_settings(mmes,True,f"<b><u>Received {var_name} value '{value}' with confirm.</b></u>",sub_menu, sender_id=sender_id)
+            except ValueError:
+                await handle_user_settings(mmes,True,f"<b><u>Value [{value}] not valid try again and enter {datatype}.</b></u>",sub_menu, sender_id=sender_id)
+        else:
+            await handle_user_settings(mmes,True,f"<b><u>Confirm differed by user.</b></u>",sub_menu, sender_id=sender_id)
     else:
         await handle_user_settings(mmes,True,f"<b><u>Entry Timed out [waited 60s for input]. OR else ignored.</b></u>",sub_menu, sender_id=sender_id)
 
@@ -310,21 +299,14 @@ async def val_input_callback(e,o_sender,lis,file):
     if not file:
         lis[0] = True
         lis[1] = e.text
-        await e.delete()
-    else:
-        if e.document is not None:
-            path = await e.download_media()
-            lis[0]  = True
-            lis[1] = path 
-            await e.delete()
-        else:
-            if "ignore" in e.text:
-                lis[0]  = True
-                lis[1] = "ignore"
-                await e.delete()
-            else:
-                await e.delete()
-        
+    elif e.document is not None:
+        path = await e.download_media()
+        lis[0]  = True
+        lis[1] = path
+    elif "ignore" in e.text:
+        lis[0]  = True
+        lis[1] = "ignore"
+    await e.delete()
     raise events.StopPropagation
 
 async def get_confirm_callback(e,o_sender,lis):
@@ -333,12 +315,9 @@ async def get_confirm_callback(e,o_sender,lis):
     if o_sender != e.sender_id:
         return
     lis[0] = True
-    
+
     data = e.data.decode().split(" ")
-    if data[1] == "true":
-        lis[1] = True
-    else:
-        lis[1] = False
+    lis[1] = data[1] == "true"
 
 async def confirm_buttons(e,val):
     # add the confirm buttons at the bottom of the message
@@ -373,16 +352,12 @@ async def get_string_variable(var_name,menu,callback_name,sender_id):
 
     if var_name == "RCLONE_CONFIG":
         rfile = user_db.get_rclone(sender_id)
-        if rfile is False:
-            val = "File is not loaded."
-        else:
-            val = "File is Loaded"
-            #val = "Custom file is loaded."
+        val = "File is not loaded." if rfile is False else "File is Loaded"
     else:
         val = user_db.get_var(var_name, sender_id)
 
-       
-        
+
+
     msg = var_name + " " + str(val)
     menu.append(
         [KeyboardButtonCallback(msg,f"usettings {callback_name} {sender_id}".encode("UTF-8"))]

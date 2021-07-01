@@ -27,11 +27,9 @@ def skipTorExp(func):
 async def cli_call(cmd: Union[str,List[str]]) -> Tuple[str,str]:
     if isinstance(cmd,str):
         cmd = shlex.split(cmd)
-    elif isinstance(cmd,(list,tuple)):
-        pass
-    else:
+    elif not isinstance(cmd, (list, tuple)):
         return None,None
-    
+
     process = await asyncio.create_subprocess_exec(
         *cmd,
         stderr=asyncio.subprocess.PIPE,
@@ -39,13 +37,13 @@ async def cli_call(cmd: Union[str,List[str]]) -> Tuple[str,str]:
     )
 
     stdout, stderr = await process.communicate()
-    
+
     stdout = stdout.decode().strip()
     stderr = stderr.decode().strip()
 
     with open("test.txt","w",encoding="UTF-8") as f:
         f.write(stdout)
-    
+
     return stdout, stderr
 
 
@@ -104,46 +102,44 @@ async def create_quality_menu(url: str,message: MessageLike, message1: MessageLi
         await message.edit("Errored failed parsing.")
         return None, err
     else:
-        unique_formats = dict()
+        unique_formats = {}
         for i in data.get("formats"):
             c_format = i.get("format_note")
             if c_format is None:
                 c_format = i.get("height")
-            if not c_format in unique_formats:
+            if c_format not in unique_formats:
                 if i.get("filesize") is not None:
                     unique_formats[c_format] = [i.get("filesize"),i.get("filesize")]
                 else:
                     unique_formats[c_format] = [0,0]
 
-            else:
-                if i.get("filesize") is not None:
-                    if unique_formats[c_format][0] > i.get("filesize"):
-                        unique_formats[c_format][0] = i.get("filesize")
-                    else:
-                        unique_formats[c_format][1] = i.get("filesize")
+            elif i.get("filesize") is not None:
+                if unique_formats[c_format][0] > i.get("filesize"):
+                    unique_formats[c_format][0] = i.get("filesize")
+                else:
+                    unique_formats[c_format][1] = i.get("filesize")
 
-        buttons = list()
-        for i in unique_formats.keys():
+        buttons = []
+        for i in unique_formats:
             
             # add human bytes here
             if i == "tiny":
                 text = f"tiny [{human_readable_bytes(unique_formats[i][0])} - {human_readable_bytes(unique_formats[i][1])}] ➡️"
-                cdata = f"ytdlsmenu|{i}|{message1.sender_id}|{suid}" # add user id
             else:
                 text = f"{i} [{human_readable_bytes(unique_formats[i][0])} - {human_readable_bytes(unique_formats[i][1])}] ➡️"
-                cdata = f"ytdlsmenu|{i}|{message1.sender_id}|{suid}" # add user id
+            cdata = f"ytdlsmenu|{i}|{message1.sender_id}|{suid}" # add user id
             buttons.append([KeyboardButtonCallback(text,cdata.encode("UTF-8"))])
         buttons.append([KeyboardButtonCallback("Audios ➡️",f"ytdlsmenu|audios|{message1.sender_id}|{suid}")])
         await message.edit("Choose a quality/option available below.",buttons=buttons)
-        
+
         if jsons is None:
             path = os.path.join(os.getcwd(),'userdata')
-            
+
             if not os.path.exists(path):
                 os.mkdir(path)
-            
+
             path = os.path.join(path,f"{suid}.json")
-            
+
             with open(path,"w",encoding="UTF-8") as file:
                 file.write(json.dumps(data).decode("UTF-8"))
 
@@ -167,17 +163,17 @@ async def handle_ytdl_command(e: MessageLike):
 async def handle_ytdl_callbacks(e: MessageLike):
     data = e.data.decode("UTF-8")
     data = data.split("|")
-    
+
     if data[0] == "ytdlsmenu":
         if data[2] != str(e.sender_id):
             await e.answer("Not valid user, Dont touch.")
             return
-        
+
         path = os.path.join(os.getcwd(),'userdata',data[3]+".json")
         if os.path.exists(path):
             with open(path) as file:
                 ytdata = json.loads(file.read())
-                buttons = list()
+                buttons = []
                 if data[1] == "audios":
                     for i in ["64K","128K","320K"]:
                         text = f"{i} [MP3]"
@@ -193,22 +189,22 @@ async def handle_ytdl_callbacks(e: MessageLike):
                             c_format = str(i.get("height"))
                             format_id = f"xxother{j}"
                             height = i.get('format')
-                        if not c_format == data[1]:
+                        if c_format != data[1]:
                             continue
-                        
-                        
+
+
                         if not height:
                             continue
-                            
+
                         text = f"{height} [{i.get('ext')}] [{human_readable_bytes(i.get('filesize'))}]"
                         cdata = f"ytdldfile|{format_id}|{e.sender_id}|{data[3]}"
-                        
+
                         buttons.append([KeyboardButtonCallback(text,cdata.encode("UTF-8"))])
                         j+=1
-                
+
                 buttons.append([KeyboardButtonCallback("Go Back 😒",f"ytdlmmenu|{data[2]}|{data[3]}")])
                 await e.edit(f"Files for quality {data[1]}",buttons=buttons)
-                
+
 
 
         else:
@@ -233,14 +229,14 @@ async def handle_ytdl_file_download(e: MessageLike):
 
     data = e.data.decode("UTF-8")
     data = data.split("|")
-    
-    
+
+
     if data[2] != str(e.sender_id):
         await e.answer("Not valid user, Dont touch.")
         return
     else:
         await e.answer("Crunching Data.....")
-    
+
     await e.edit(buttons=None)
 
     is_audio = False
@@ -258,37 +254,36 @@ async def handle_ytdl_file_download(e: MessageLike):
             if data[1].startswith("xxother"):
                 data[1] = data[1].replace("xxother","")
                 data[1] = int(data[1])
-                j = 0
-                for i in ytdata.get("formats"):
+                for j, i in enumerate(ytdata.get("formats")):
                     if j == data[1]:
                         data[1] = i.get("format_id")
-                    j +=1
             else:
                 for i in ytdata.get("formats"):
-                    if i.get("format_id") == data[1]:
-                        if i.get("acodec") is not None:
-                            is_audio = True
-                            
-                    
+                    if (
+                        i.get("format_id") == data[1]
+                        and i.get("acodec") is not None
+                    ):
+                        is_audio = True
+
+
             if data[1].endswith("K"):
                 cmd = f"youtube-dl -i --extract-audio --add-metadata --audio-format mp3 --audio-quality {data[1]} -o '{op_dir}/%(title)s.%(ext)s' {yt_url}"
 
+            elif is_audio:
+                cmd = f"youtube-dl --continue --embed-subs --no-warnings --hls-prefer-ffmpeg --prefer-ffmpeg -f {data[1]} -o {op_dir}/%(title)s.%(ext)s {yt_url}"
             else:
-                if is_audio:
-                    cmd = f"youtube-dl --continue --embed-subs --no-warnings --hls-prefer-ffmpeg --prefer-ffmpeg -f {data[1]} -o {op_dir}/%(title)s.%(ext)s {yt_url}"
-                else:
-                    cmd = f"youtube-dl --continue --embed-subs --no-warnings --hls-prefer-ffmpeg --prefer-ffmpeg -f {data[1]}+bestaudio[ext=m4a]/best -o {op_dir}/%(title)s.%(ext)s {yt_url}"
-            
+                cmd = f"youtube-dl --continue --embed-subs --no-warnings --hls-prefer-ffmpeg --prefer-ffmpeg -f {data[1]}+bestaudio[ext=m4a]/best -o {op_dir}/%(title)s.%(ext)s {yt_url}"
+
             out, err = await cli_call(cmd)
-            
+
             if not err:
-                
+
                 # TODO Fix the original thumbnail
                 # rdict = await upload_handel(op_dir,await e.get_message(),e.sender_id,dict(),thumb_path=thumb_path)
-                
+
                 rdict = await upload_handel(op_dir,await e.get_message(),e.sender_id,dict(), user_msg=e)
                 await print_files(e,rdict)
-                
+
                 shutil.rmtree(op_dir)
                 os.remove(thumb_path)
                 os.remove(path)
@@ -305,7 +300,7 @@ async def handle_ytdl_file_download(e: MessageLike):
                     await omess.respond(emsg)
                 else:
                     await omess1.reply(emsg)
-                
+
                 rdict = await upload_handel(op_dir,await e.get_message(),e.sender_id,dict(), user_msg=e)
                 await print_files(e,rdict)
 
@@ -328,7 +323,7 @@ async def handle_ytdl_playlist(e: MessageLike) -> None:
     url = await e.get_reply_message()
     url = url.text.strip()
     cmd = f"youtube-dl -i --flat-playlist --dump-single-json {url}"
-    
+
     msg = await e.reply("Processing your Youtube Playlist download request")
 
     # cancel the playlist if time exceed 5 mins
@@ -337,11 +332,11 @@ async def handle_ytdl_playlist(e: MessageLike) -> None:
     except asyncio.TimeoutError:
         await msg.edit("Processing time exceeded... The playlist seem to long to be worked with 😢\n If the playlist is short and you think its error report back.")
         return
-    
+
     if err:
         await msg.edit(f"Failed to load the playlist with the error:- <code>{err}</code>",parse_mode="html")
         return
-    
+
 
     try:
         pldata = json.loads(out)
@@ -351,8 +346,6 @@ async def handle_ytdl_playlist(e: MessageLike) -> None:
             return
 
         entlen = len(entities)
-        keybr = list()
-        
         # limit the max vids
         if entlen > get_val("MAX_YTPLAYLIST_SIZE"):
 
@@ -363,12 +356,29 @@ async def handle_ytdl_playlist(e: MessageLike) -> None:
         # format> ytdlplaylist | quality | suid | sender_id
         suid = str(time.time()).replace(".","")
 
-        for i in ["144","240","360","480","720","1080","1440","2160"]:
-            keybr.append([KeyboardButtonCallback(text=f"{i}p All videos",data=f"ytdlplaylist|{i}|{suid}|{e.sender_id}")])
+        keybr = [
+            [
+                KeyboardButtonCallback(
+                    text=f"{i}p All videos",
+                    data=f"ytdlplaylist|{i}|{suid}|{e.sender_id}",
+                )
+            ]
+            for i in [
+                "144",
+                "240",
+                "360",
+                "480",
+                "720",
+                "1080",
+                "1440",
+                "2160",
+            ]
+        ]
+
 
         keybr.append([KeyboardButtonCallback(text=f"Best All videos",data=f"ytdlplaylist|best|{suid}|{e.sender_id}")])
-        
-        
+
+
         keybr.append([KeyboardButtonCallback(text="Best all audio only. [340k]",data=f"ytdlplaylist|320k|{suid}|{e.sender_id}")])
         keybr.append([KeyboardButtonCallback(text="Medium all audio only. [128k]",data=f"ytdlplaylist|128k|{suid}|{e.sender_id}")])
         keybr.append([KeyboardButtonCallback(text="Worst all audio only. [64k]",data=f"ytdlplaylist|64k|{suid}|{e.sender_id}")])
@@ -376,12 +386,12 @@ async def handle_ytdl_playlist(e: MessageLike) -> None:
         await msg.edit(f"Found {entlen} videos in the playlist.",buttons=keybr) 
 
         path = os.path.join(os.getcwd(),'userdata')
-        
+
         if not os.path.exists(path):
             os.mkdir(path)
-        
+
         path = os.path.join(path,f"{suid}.json")
-        
+
         with open(path,"w",encoding="UTF-8") as file:
             file.write(json.dumps(pldata).decode("UTF-8"))
 
@@ -443,13 +453,13 @@ async def print_files(e,files):
     msg = "#uploads\n"
     if len(files) == 0:
         return
-    
+
     chat_id = e.chat_id
 
     for i in files.keys():
         link = f'https://t.me/c/{str(chat_id)[4:]}/{files[i]}'
         msg += f'🚩 <a href="{link}">{i}</a>\n'
-     
+
     rmsg = await e.client.get_messages(e.chat_id,ids=e.message_id)
     rmsg = await rmsg.get_reply_message()
     if rmsg is None:
@@ -463,16 +473,13 @@ async def print_files(e,files):
     if len(files) < 2:
         return
 
-    ids = list()
-    for i in files.keys():
-        ids.append(files[i])
-    
+    ids = [files[i] for i in files.keys()]
     msgs = await e.client.get_messages(e.chat_id,ids=ids)
     for i in msgs:
         index = None
-        for j in range(0,len(msgs)):
+        for j in range(len(msgs)):
             index = j
-            if ids[j] == i.id:
+            if ids[index] == i.id:
                 break
         nextt,prev = "",""
         chat_id = str(e.chat_id)[4:]
@@ -485,7 +492,7 @@ async def print_files(e,files):
         else:
             nextt = f'https://t.me/c/{chat_id}/{ids[index+1]}'
             nextt = f'<a href="{nextt}">Next</a>\n'
-            
+
             prev = f'https://t.me/c/{chat_id}/{ids[index-1]}'
             prev = f'<a href="{prev}">Prev</a>\n'
 

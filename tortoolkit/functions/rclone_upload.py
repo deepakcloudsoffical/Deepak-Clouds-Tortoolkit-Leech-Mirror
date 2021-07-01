@@ -38,7 +38,7 @@ async def rclone_upload(path,message,user_msg,dest_drive,dest_base,edit_time,con
     upload_db.register_upload(omsg.chat_id, omsg.id)
     data = "upcancel {} {} {}".format(omsg.chat_id,omsg.id,omsg.sender_id)
     buts = [KeyboardButtonCallback("Cancel upload.",data.encode("UTF-8"))]
-    
+
     msg = await message.reply("<b>Uploading to configured drive.... will be updated soon.",parse_mode="html", buttons=buts)
     if os.path.isdir(path):
         # handle dirs
@@ -55,25 +55,22 @@ async def rclone_upload(path,message,user_msg,dest_drive,dest_base,edit_time,con
             stdout=subprocess.PIPE
         )
         rcres = await rclone_process_display(rclone_pr,edit_time,msg, message, omsg)
-        
+
         if rcres is False:
             await message.edit(message.text + "\nCanceled Rclone Upload")
             await msg.delete()
             rclone_pr.kill()
             return True
-            
+
 
         torlog.info("Upload complete")
         gid = await get_glink(dest_drive,dest_base,os.path.basename(path),conf_path)
         torlog.info(f"Upload folder id :- {gid}")
-        
+
         folder_link = f"https://drive.google.com/folderview?id={gid}"
         txtmsg = "<a href='tg://user?id={}'>Done</a>\n#uploads\nUPLOADED FOLDER :-<code>{}</code>\nTo Drive.".format(omsg.sender_id,os.path.basename(path))
-        
+
         await omsg.reply(txtmsg,buttons=[[KeyboardButtonUrl("Drive URL",folder_link)]],parse_mode="html")
-        await msg.delete()
-
-
     else:
         new_dest_base = dest_base
         # buffer size needs more testing though #todo
@@ -88,7 +85,7 @@ async def rclone_upload(path,message,user_msg,dest_drive,dest_base,edit_time,con
             stdout=subprocess.PIPE
         )
         rcres = await rclone_process_display(rclone_pr,edit_time,msg, message, omsg)
-        
+
         if rcres is False:
             await message.edit(message.text + "\nCanceled Rclone Upload")
             await msg.delete()
@@ -100,12 +97,13 @@ async def rclone_upload(path,message,user_msg,dest_drive,dest_base,edit_time,con
         torlog.info(f"Upload folder id :- {gid}")
 
         file_link = f"https://drive.google.com/file/d/{gid}/view"
-        
+
         txtmsg = "<a href='tg://user?id={}'>Done</a>\n#uploads\nUPLOADED FILE :-<code>{}</code>\nTo Drive.".format(omsg.sender_id,os.path.basename(path))
 
-        
+
         await omsg.reply(txtmsg,buttons=[[KeyboardButtonUrl("Drive URL",file_link)]],parse_mode="html")
-        await msg.delete()
+    await msg.delete()
+
 
     upload_db.deregister_upload(message.chat_id, message.id)
     return True
@@ -116,19 +114,12 @@ def progress_bar(percentage):
     #percentage is on the scale of 0-1
     comp = "▰"
     ncomp = "▱"
-    pr = ""
-
     try:
         percentage=int(percentage)
     except:
         percentage = 0
 
-    for i in range(1,11):
-        if i <= int(percentage/10):
-            pr += comp
-        else:
-            pr += ncomp
-    return pr
+    return "".join(comp if i <= int(percentage/10) else ncomp for i in range(1,11))
 
 async def rclone_process_display(process,edit_time,msg, omessage, cancelmsg):
     blank=0
@@ -140,30 +131,29 @@ async def rclone_process_display(process,edit_time,msg, omessage, cancelmsg):
         data = process.stdout.readline().decode()
         data = data.strip()
         mat = re.findall("Transferred:.*ETA.*",data)
-        
-        if mat is not None:
-            if len(mat) > 0:
-                sleeps = True
-                if time.time() - start > edit_time:
-                    start = time.time()
-                    
-                    nstr = mat[0].replace("Transferred:","")
-                    nstr = nstr.strip()
-                    nstr = nstr.split(",")
-                    prg = nstr[1].strip("% ")
-                    prg = "Progress:- {} - {}%".format(progress_bar(prg),prg)
-                    progress = "<b>Uploaded:- {} \n{} \nSpeed:- {} \nETA:- {}</b> \n<b>Using Engine:- </b><code>RCLONE</code>".format(nstr[0],prg,nstr[2],nstr[3].replace("ETA",""))
-                    if not prev_cont == progress:
-                        #kept just in case
-                        prev_cont = progress
-                        try:
-                            await msg.edit(progress,parse_mode="html")
-                        except Exception as e:
-                            torlog.error(e)
 
-                    
-                    torlog.debug(progress)
-    
+        if mat is not None and len(mat) > 0:
+            sleeps = True
+            if time.time() - start > edit_time:
+                start = time.time()
+
+                nstr = mat[0].replace("Transferred:","")
+                nstr = nstr.strip()
+                nstr = nstr.split(",")
+                prg = nstr[1].strip("% ")
+                prg = "Progress:- {} - {}%".format(progress_bar(prg),prg)
+                progress = "<b>Uploaded:- {} \n{} \nSpeed:- {} \nETA:- {}</b> \n<b>Using Engine:- </b><code>RCLONE</code>".format(nstr[0],prg,nstr[2],nstr[3].replace("ETA",""))
+                if prev_cont != progress:
+                    #kept just in case
+                    prev_cont = progress
+                    try:
+                        await msg.edit(progress,parse_mode="html")
+                    except Exception as e:
+                        torlog.error(e)
+
+
+                torlog.debug(progress)
+
         if data == "":
             blank += 1
             if blank == 20:
@@ -174,7 +164,7 @@ async def rclone_process_display(process,edit_time,msg, omessage, cancelmsg):
         if sleeps:
             if upload_db.get_cancel_status(cancelmsg.chat_id, cancelmsg.id):
                 return False
-            
+
             sleeps=False
             await aio.sleep(2)
             process.stdout.flush()
@@ -193,14 +183,10 @@ async def get_glink(drive_name,drive_base,ent_name,conf_path,isdir=True):
         else:
             get_id_cmd = ["rclone", "lsjson", f'--config={conf_path}', f"{drive_name}:{drive_base}", "--dirs-only", "-f", f"+ {ent_name}/", "-f", "- *"]
         #get_id_cmd = ["rclone", "lsjson", f'--config={conf_path}', f"{drive_name}:{drive_base}", "--dirs-only", f"--filter-from={filter_path}"]
+    elif get_val("RSTUFF"):
+        get_id_cmd = [get_val("RSTUFF"), "lsjson", f'--config={conf_path}', f"{drive_name}:{drive_base}", "--files-only", "-f", f"+ {ent_name}", "-f", "- *"]
     else:
-        if get_val("RSTUFF"):
-            get_id_cmd = [get_val("RSTUFF"), "lsjson", f'--config={conf_path}', f"{drive_name}:{drive_base}", "--files-only", "-f", f"+ {ent_name}", "-f", "- *"]
-        else:
-            get_id_cmd = ["rclone", "lsjson", f'--config={conf_path}', f"{drive_name}:{drive_base}", "--files-only", "-f", f"+ {ent_name}", "-f", "- *"]
-        #get_id_cmd = ["rclone", "lsjson", f'--config={conf_path}', f"{drive_name}:{drive_base}", "--files-only", f"--filter-from={filter_path}"]
-
-
+        get_id_cmd = ["rclone", "lsjson", f'--config={conf_path}', f"{drive_name}:{drive_base}", "--files-only", "-f", f"+ {ent_name}", "-f", "- *"]
     # piping only stdout
     process = await aio.create_subprocess_exec(
         *get_id_cmd,
@@ -209,14 +195,13 @@ async def get_glink(drive_name,drive_base,ent_name,conf_path,isdir=True):
 
     stdout, _ = await process.communicate()
     stdout = stdout.decode().strip()
-    
+
     if os.path.exists(filter_path):
         os.remove(filter_path)
-    
+
     try:
         data = json.loads(stdout)
-        id = data[0]["ID"]
-        return id
+        return data[0]["ID"]
     except Exception:
         torlog.error("Error Occured while getting id ::- {}".format(traceback.format_exc()))
 
@@ -224,20 +209,22 @@ async def get_config():
     # this car requires to access the blob
 
     config = get_val("RCLONE_CONFIG")
-    if config is not None:
-        if isinstance(config,str):
-            if os.path.exists(config):
-                return config
-    
+    if (
+        config is not None
+        and isinstance(config, str)
+        and os.path.exists(config)
+    ):
+        return config
+
     db = var_db
     _, blob = db.get_variable("RCLONE_CONFIG")
-    
+
     if blob is not None:
         fpath = os.path.join(os.getcwd(),"rclone-config.conf")
         with open(fpath,"wb") as fi:
             fi.write(blob)
         return fpath
-    
+
     return None
 
 # probably hotfix for rclone ban

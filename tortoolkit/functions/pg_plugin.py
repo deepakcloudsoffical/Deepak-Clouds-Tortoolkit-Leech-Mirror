@@ -8,20 +8,14 @@ class DataBaseHandle:
         """Load the DB URL if available
         """
         self._dburl = dburl
-        if isinstance(self._dburl,bool):
-            self._block = True
-        else:
-            self._block = False
-        
+        self._block = isinstance(self._dburl,bool)
         if self._block:
             return
-        
+
         self._conn = psycopg2.connect(self._dburl)
 
     def scur(self):
-        # start cursor
-        cur = self._conn.cursor()
-        return cur
+        return self._conn.cursor()
 
     def ccur(self,cursor):
         if cursor is not None:
