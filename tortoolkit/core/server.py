@@ -133,11 +133,11 @@ async def list_torrent_contents(request):
 
     gets = request.query
 
-    if not "pin_code" in gets.keys():
+    if "pin_code" not in gets.keys():
         rend_page = code_page.replace("{form_url}",f"/tortk/files/{torr}")
         return web.Response(text=rend_page,content_type='text/html')
 
-    
+
     client = qba.Client(host="localhost",port="8090",username="admin",password="adminadmin")
     client.auth_log_in()
     try:
@@ -145,7 +145,7 @@ async def list_torrent_contents(request):
     except qba.NotFound404Error:
       raise web.HTTPNotFound()
 
-    
+
     # Central object is not used its Acknowledged 
     db = TtkTorrents()
     passw = db.get_password(torr)
@@ -155,9 +155,9 @@ async def list_torrent_contents(request):
     if gets["pin_code"] != pincode:
         return web.Response(text="Incorrect pin code")
 
-    
+
     par = nodes.make_tree(res)
-    
+
     cont = ["",0]
     nodes.create_list(par,cont)
 
@@ -180,40 +180,35 @@ async def re_verfiy(paused,resumed,client,torr):
         
         res = client.torrents_files(torrent_hash=torr)
         verify = True
-        
+
         for i in res:
             if str(i.id) in paused:
                 if i.priority == 0:
                     continue
-                else:
-                    verify = False
-                    break
+                verify = False
+                break
 
-            if str(i.id) in resumed:
-                if i.priority != 0:
-                    continue
-                else:
-                    verify = False
-                    break
+            if str(i.id) in resumed and i.priority == 0:
+                verify = False
+                break
 
 
-        if not verify:
-            torlog.info("Reverification Failed :- correcting stuff")
-            # reconnect and issue the request again
-            client.auth_log_out()
-            client = qba.Client(host="localhost",port="8090",username="admin",password="adminadmin")
-            client.auth_log_in()
-            try:
-                client.torrents_file_priority(torrent_hash=torr,file_ids=paused,priority=0)
-            except:
-                torlog.error("Errored in reverification paused")
-            try:
-                client.torrents_file_priority(torrent_hash=torr,file_ids=resumed,priority=1)
-            except:
-                torlog.error("Errored in reverification resumed")
-            client.auth_log_out()
-        else:
+        if verify:
             break
+        torlog.info("Reverification Failed :- correcting stuff")
+        # reconnect and issue the request again
+        client.auth_log_out()
+        client = qba.Client(host="localhost",port="8090",username="admin",password="adminadmin")
+        client.auth_log_in()
+        try:
+            client.torrents_file_priority(torrent_hash=torr,file_ids=paused,priority=0)
+        except:
+            torlog.error("Errored in reverification paused")
+        try:
+            client.torrents_file_priority(torrent_hash=torr,file_ids=resumed,priority=1)
+        except:
+            torlog.error("Errored in reverification resumed")
+        client.auth_log_out()
         k += 1
         if k >= 2:
             # avoid an infite loop here
@@ -232,8 +227,8 @@ async def set_priority(request):
     resume = ""
     pause = ""
     data = dict(data)
-    
-    for i in data.keys():
+
+    for i in data:
         if i.find("filenode") != -1:
             node_no = i.split("_")[-1]
 
@@ -241,19 +236,19 @@ async def set_priority(request):
                 resume += f"{node_no}|"
             else:
                 pause += f"{node_no}|"
-            
+
     pause = pause.strip("|")
     resume = resume.strip("|")
     torlog.info(f"Paused {pause} of {torr}")
     torlog.info(f"Resumed {resume} of {torr}")
-    
+
     try:
         client.torrents_file_priority(torrent_hash=torr,file_ids=pause,priority=0)
     except qba.NotFound404Error:
         raise web.HTTPNotFound()
     except:
         torlog.info("Errored in paused")
-    
+
     try:
         client.torrents_file_priority(torrent_hash=torr,file_ids=resume,priority=1)
     except qba.NotFound404Error:

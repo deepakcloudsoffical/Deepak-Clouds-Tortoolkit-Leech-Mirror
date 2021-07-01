@@ -22,7 +22,7 @@ torlog = logging.getLogger(__name__)
 #this function is to ensure that only one magnet is passed at a time
 def get_magnets(text):
     matches = [ i for i in re.finditer("magnet:",text)]
-    magnets = list()
+    magnets = []
 
     for i in range(len(matches)):
         if i == len(matches)-1:
@@ -39,7 +39,7 @@ def get_magnets(text):
 
 
 def get_entities(msg):
-    urls = list()
+    urls = []
 
     for i in msg.entities:
         if isinstance(i,types.MessageEntityUrl):
@@ -48,7 +48,7 @@ def get_entities(msg):
         elif isinstance(i,types.MessageEntityTextUrl):
             urls.append(i.url)
 
-    if len(urls) > 0:
+    if urls:
         return urls[0]
     else:
         return None
@@ -72,42 +72,39 @@ async def check_link(msg,rclone=False,is_zip=False, extract=False):
         for i in msg.document.attributes:
             if isinstance(i,types.DocumentAttributeFilename):
                 name = i.file_name
-        
-        if name is None:
+
+        if (
+            name is None
+            or name is not None
+            and not name.lower().endswith(".torrent")
+        ):
             await omess.reply("This is not a torrent file to leech from. Send <code>.torrent</code> file",parse_mode="html")
-        elif name.lower().endswith(".torrent"):
+        else:
             rmess = await omess.reply("Downloading the torrent file.")
 
             #not worring about the download location now
             # TODO do something to de register the torrents
             path = await msg.download_media()
             rval =  await QBittorrentWrap.register_torrent(path,rmess,omess,file=True)
-            
+
             if not isinstance(rval,bool) and rval is not None:
                 if extract:
                     newpath = await handle_ext_zip(rval[0], rmess, omess)
-                    if not newpath is False:
-                        rval[0] = newpath
                 else:
                     newpath = await handle_zips(rval[0], is_zip, rmess)
-                    if newpath is False:
-                        pass
-                    else:
-                        rval[0] = newpath
-                
+                if newpath is not False:
+                    rval[0] = newpath
                 if not rclone:
                     rdict = await upload_handel(rval[0],rmess,omess.from_id,dict(),user_msg=omess)
                     await print_files(omess,rdict)
                     torlog.info("Here are the fiels uploaded {}".format(rdict))
-                    await QBittorrentWrap.delete_this(rval[1])
                 else:
                     res = await rclone_driver(rval[0],rmess,omess)
                     if res is None:
                         await msg.reply("<b>UPLOAD TO DRIVE FAILED CHECK LOGS</b>",parse_mode="html")
-                    await QBittorrentWrap.delete_this(rval[1])
-
+                await QBittorrentWrap.delete_this(rval[1])
             try:
-                
+
                 os.remove(path)
                 if os.path.isdir(rval):
                     shutil.rmtree(rval)
@@ -115,46 +112,29 @@ async def check_link(msg,rclone=False,is_zip=False, extract=False):
                     os.remove(rval)
             except:pass
             return rval
-        else:
-            await omess.reply("This is not a torrent file to leech from. Send <code>.torrent</code> file",parse_mode="html")
-
     elif msg.raw_text is not None:
         if msg.raw_text.lower().startswith("magnet:"):
             rmess = await omess.reply("Scanning....")
-            
+
             mgt = get_magnets(msg.raw_text.strip())
             path = await QBittorrentWrap.register_torrent(mgt,rmess,omess,True)
-            
+
             if not isinstance(path,bool) and path is not None:
                 if extract:
                     newpath = await handle_ext_zip(path[0], rmess, omess)
-                    if not newpath is False:
-                        path[0] = newpath
                 else:
                     newpath = await handle_zips(path[0], is_zip, rmess)
-                    if newpath is False:
-                        pass
-                    else:
-                        path[0] = newpath
-
+                if newpath is not False:
+                    path[0] = newpath
                 if not rclone:
                     rdict = await upload_handel(path[0],rmess,omess.from_id,dict(),user_msg=omess)
                     await print_files(omess,rdict)
                     torlog.info("Here are the files to be uploaded {}".format(rdict))
-                    await QBittorrentWrap.delete_this(path[1])
                 else:
                     res = await rclone_driver(path[0],rmess,omess)
                     if res is None:
                         await msg.reply("<b>UPLOAD TO DRIVE FAILED CHECK LOGS</b>",parse_mode="html")
-                    await QBittorrentWrap.delete_this(path[1])
-            try:
-                
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                else:
-                    os.remove(path)
-            except:pass
-
+                await QBittorrentWrap.delete_this(path[1])
         elif msg.entities is not None:
             url = get_entities(msg)
             torlog.info("Downloadinf Urls")
@@ -169,15 +149,10 @@ async def check_link(msg,rclone=False,is_zip=False, extract=False):
             if not isinstance(path,bool) and stat:
                 if extract:
                     newpath = await handle_ext_zip(path, rmsg, omess)
-                    if not newpath is False:
-                        path = newpath
                 else:
                     newpath = await handle_zips(path, is_zip, rmsg)
-                    if newpath is False:
-                        pass
-                    else:
-                        path = newpath
-                
+                if newpath is not False:
+                    path = newpath
                 if not rclone:
                     rdict = await upload_handel(path,rmsg,omess.from_id,dict(),user_msg=omess)
                     await print_files(omess,rdict)
@@ -188,13 +163,7 @@ async def check_link(msg,rclone=False,is_zip=False, extract=False):
                         await msg.reply("<b>UPLOAD TO DRIVE FAILED CHECK LOGS</b>",parse_mode="html")
             elif stat is False:
                 await rmsg.edit("Failed to download this file.\n"+str(path))
-            
-            try:
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                else:
-                    os.remove(path)
-            except:pass
+
         else:
             torlog.info("Downloadinf Url")
             #consider it as a direct link LOL
@@ -204,15 +173,10 @@ async def check_link(msg,rclone=False,is_zip=False, extract=False):
             if not isinstance(path,bool) and stat:
                 if extract:
                     newpath = await handle_ext_zip(path, rmsg, omess)
-                    if not newpath is False:
-                        path = newpath
                 else:
                     newpath = await handle_zips(path, is_zip, rmsg)
-                    if newpath is False:
-                        pass
-                    else:
-                        path = newpath
-                
+                if newpath is not False:
+                    path = newpath
                 if not rclone:
                     rdict = await upload_handel(path,rmsg,omess.from_id,dict(),user_msg=omess)
                     await print_files(omess,rdict)
@@ -221,14 +185,15 @@ async def check_link(msg,rclone=False,is_zip=False, extract=False):
                     res = await rclone_driver(path,rmess, omess)
                     if res is None:
                         await msg.reply("<b>UPLOAD TO DRIVE FAILED CHECK LOGS</b>",parse_mode="html")
-            
-            try:
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                else:
-                    os.remove(path)
-            except:pass
-    
+
+        try:
+
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+        except:pass
+
     return None
 
 async def pause_all(msg):
@@ -247,26 +212,26 @@ async def get_status(msg,all=False):
 async def handle_zips(path, is_zip, rmess):
     # refetch rmess
     rmess = await rmess.client.get_messages(rmess.chat_id,ids=rmess.id)
-    if is_zip:
-        try:
-            await rmess.edit(rmess.text+"\n Starting to Zip the contents. Please wait.")
-            zip_path = await add_to_zip(path, get_val("TG_UP_LIMIT"))
-            
-            if zip_path is None:
-                await rmess.edit(rmess.text+"\n Zip failed. Falback to normal")
-                return False
-            
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-            if os.path.isfile(path):
-                os.remove(path)
-            await rmess.edit(rmess.text+"\n Zipping Done now uploading.")
-            return zip_path
-        except:
+    if not is_zip:
+        return path
+
+    try:
+        await rmess.edit(rmess.text+"\n Starting to Zip the contents. Please wait.")
+        zip_path = await add_to_zip(path, get_val("TG_UP_LIMIT"))
+
+        if zip_path is None:
             await rmess.edit(rmess.text+"\n Zip failed. Falback to normal")
             return False
-    else:
-        return path
+
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        if os.path.isfile(path):
+            os.remove(path)
+        await rmess.edit(rmess.text+"\n Zipping Done now uploading.")
+        return zip_path
+    except:
+        await rmess.edit(rmess.text+"\n Zip failed. Falback to normal")
+        return False
 
 async def handle_ext_zip(path, rmess, omess):
     # refetch rmess
@@ -291,21 +256,15 @@ async def handle_ext_zip(path, rmess, omess):
                 temppass = temppass[1]
             if temppass == password:
                 await aio.sleep(10)
-                continue
             else:
                 password = temppass
                 wrong_pwd = False
-                continue
-        
+            continue
         if "Wrong Password" in ext_path:
             mess = f"<a href='tg://user?id={omess.sender_id}'>RE-ENTER PASSWORD</a>\nThe passowrd <code>{password}</code> you provided is a wrong password.You have {((time.time()-start)/60)-20} Mins to reply else un extracted zip will be uploaded.\n Use <code>/setpass {omess.id} <password></code>"
             await omess.reply(mess, parse_mode="html")
             wrong_pwd = True
-        elif ext_path is False:
-            return False
-        elif ext_path is None:
-            # None is to descibe fetal but the upload will fail 
-            # itself further nothing to handle here
+        elif ext_path is False or ext_path is None:
             return False
         else:
             return ext_path
@@ -317,28 +276,25 @@ async def print_files(e,files):
     msg = f"<a href='tg://user?id={e.sender_id}'>Done</a>\n#uploads\n"
     if len(files) == 0:
         return
-    
+
     chat_id = e.chat_id
 
     for i in files.keys():
         link = f'https://t.me/c/{str(chat_id)[4:]}/{files[i]}'
         msg += f'🚩 <a href="{link}">{i}</a>\n'
-    
+
     await e.reply(msg,parse_mode="html")
 
     if len(files) < 2:
         return
 
-    ids = list()
-    for i in files.keys():
-        ids.append(files[i])
-    
+    ids = [files[i] for i in files.keys()]
     msgs = await e.client.get_messages(e.chat_id,ids=ids)
     for i in msgs:
         index = None
-        for j in range(0,len(msgs)):
+        for j in range(len(msgs)):
             index = j
-            if ids[j] == i.id:
+            if ids[index] == i.id:
                 break
         nextt,prev = "",""
         chat_id = str(e.chat_id)[4:]
@@ -361,7 +317,7 @@ async def print_files(e,files):
                 types.KeyboardButtonUrl("Next", nextt)
             )
             nextt = f'<a href="{nextt}">Next</a>\n'
-            
+
             prev = f'https://t.me/c/{chat_id}/{ids[index-1]}'
             buttons.append(
                 types.KeyboardButtonUrl("Prev", prev)

@@ -169,7 +169,7 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
         sleepsec = get_val("EDIT_SLEEP_SECS")
     #switch to iteration from recursion as python dosent have tailing optimization :O
     #RecursionError: maximum recursion depth exceeded
-    
+
     while True:
         tor_info = client.torrents_info(torrent_hashes=torrent.hash)
         #update cancellation
@@ -178,7 +178,7 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
         else:
             await message.edit("Torrent canceled ```{}``` ".format(torrent.name),buttons=None)
             return True
-        
+
         if tor_info.size > (get_val("MAX_TORRENT_SIZE") * 1024 * 1024 * 1024):
             await message.edit("Torrent oversized max size is {}. Try adding again and choose less files to download.".format(get_val("MAX_TORRENT_SIZE")), buttons=None)
             client.torrents_delete(torrent_hashes=tor_info.hash,delete_files=True)
@@ -206,7 +206,7 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
                 tor_info.num_seeds,tor_info.num_leechs
                 )
             msg += "<b>⚙️Using engine:</b> <code>qBittorrent</code>"
-            
+
             #error condition
             try:
                 if tor_info.state == "error":
@@ -241,13 +241,9 @@ async def update_progress(client,message,torrent,except_retry=0,sleepsec=None):
 
                     await message.edit("Download completed ```{}```. To path ```{}```".format(tor_info.name,tor_info.save_path),buttons=None)
                     return [savepath, tor_info.hash]
-                else:
-                    #return await update_progress(client,message,torrent)
-                    pass
-
             except (MessageNotModifiedError,FloodWaitError) as e:
                 torlog.error("{}".format(e))
-            
+
         except Exception as e:
             torlog.error("{}\n\n{}\n\nn{}".format(e,traceback.format_exc(),tor_info))
             try:
@@ -306,37 +302,31 @@ async def delete_this(ext_hash):
 async def get_status(message,all=False):
     client = await get_client()
     tors = client.torrents_info()
-    olen = 0
-
     if len(tors) > 0:
         msg = ""
+        olen = 0
+
         for i in tors:
             if i.progress == 1 and not all:
                 continue
-            else:
-                olen += 1
-                msg += "📥 <b>{} | {}% | {}/{}({}) | {} | {} | S:{} | L:{} | {}</b>\n\n".format(
-                    i.name,
-                    round(i.progress*100,2),
-                    human_readable_bytes(i.completed),
-                    human_readable_bytes(i.size),
-                    human_readable_bytes(i.total_size),
-                    human_readable_bytes(i.dlspeed,postfix="/s"),
-                    human_readable_timedelta(i.eta),
-                    i.num_seeds,
-                    i.num_leechs,
-                    i.state
-                )
+            olen += 1
+            msg += "📥 <b>{} | {}% | {}/{}({}) | {} | {} | S:{} | L:{} | {}</b>\n\n".format(
+                i.name,
+                round(i.progress*100,2),
+                human_readable_bytes(i.completed),
+                human_readable_bytes(i.size),
+                human_readable_bytes(i.total_size),
+                human_readable_bytes(i.dlspeed,postfix="/s"),
+                human_readable_timedelta(i.eta),
+                i.num_seeds,
+                i.num_leechs,
+                i.state
+            )
         if msg.strip() == "":
-            return "No torrents running currently...." 
-        return msg
+            return "No torrents running currently...."
     else:
         msg = "No torrents running currently...."
-        return msg
-    
-    if olen == 0:
-        msg = "No torrents running currently...."
-        return msg
+    return msg
 
 
 
@@ -346,14 +336,7 @@ def progress_bar(percentage):
     #percentage is on the scale of 0-1
     comp = "▰"
     ncomp = "▱"
-    pr = ""
-
-    for i in range(1,11):
-        if i <= int(percentage*10):
-            pr += comp
-        else:
-            pr += ncomp
-    return pr
+    return "".join(comp if i <= int(percentage*10) else ncomp for i in range(1,11))
 
 async def deregister_torrent(hashid):
     client = await get_client()
@@ -364,11 +347,7 @@ async def register_torrent(entity,message,user_msg=None,magnet=False,file=False)
 
     #refresh message
     message = await message.client.get_messages(message.chat_id,ids=message.id)
-    if user_msg is None:
-        omess = await message.get_reply_message()
-    else:
-        omess = user_msg
-
+    omess = await message.get_reply_message() if user_msg is None else user_msg
     if magnet:
         torlog.info(magnet)
         torrent = await add_torrent_magnet(entity,message)
@@ -376,11 +355,11 @@ async def register_torrent(entity,message,user_msg=None,magnet=False,file=False)
             await message.edit("The provided torrent was already completly downloaded.")
             return True
         else:
-            
+
             pincode = randint(1000,9999)
             db = tor_db
             db.add_torrent(torrent.hash,pincode)
-            
+
             pincodetxt = f"getpin {torrent.hash} {omess.sender_id}"
 
             data = "torcancel {} {}".format(torrent.hash, omess.sender_id)
@@ -403,7 +382,7 @@ async def register_torrent(entity,message,user_msg=None,magnet=False,file=False)
             message = await message.edit(buttons=[KeyboardButtonCallback("Cancel Leech",data=data.encode("UTF-8"))])
 
             db.disable_torrent(torrent.hash)
-            
+
 
 
             return await update_progress(client,message,torrent)
@@ -416,7 +395,7 @@ async def register_torrent(entity,message,user_msg=None,magnet=False,file=False)
             pincode = randint(1000,9999)
             db = tor_db
             db.add_torrent(torrent.hash,pincode)
-            
+
             pincodetxt = f"getpin {torrent.hash} {omess.sender_id}"
 
             data = "torcancel {}".format(torrent.hash)
@@ -440,7 +419,7 @@ async def register_torrent(entity,message,user_msg=None,magnet=False,file=False)
             message = await message.edit(buttons=[KeyboardButtonCallback("Cancel Leech",data=data.encode("UTF-8"))])
 
             db.disable_torrent(torrent.hash)
-            
+
 
             return await update_progress(client,message,torrent)
 

@@ -188,48 +188,45 @@ async def handle_leech_command(e):
             )
         # tsp is used to split the callbacks so that each download has its own callback
         # cuz at any time there are 10-20 callbacks linked for leeching XD
-           
+
         buts.append(
                 [KeyboardButtonCallback("Upload in a ZIP.[Toggle]", data=f"leechzip toggle {tsp}")]
         )
         buts.append(
                 [KeyboardButtonCallback("Extract from ZIP.[Toggle]", data=f"leechzipex toggleex {tsp}")]
         )
-        
+
         conf_mes = await e.reply("<b>First click if you want to zip the contents or extract as an archive (only one will work at a time) then. </b>\n<b>Choose where to uploadyour files:- </b>\nThe files will be uploaded to default destination after 60 sec of no action by user.",parse_mode="html",buttons=buts)
-        
+
         # zip check in background
         ziplist = await get_zip_choice(e,tsp)
         zipext = await get_zip_choice(e,tsp,ext=True)
-        
+
         # blocking leech choice 
         choice = await get_leech_choice(e,tsp)
-        
+
         # zip check in backgroud end
         await get_zip_choice(e,tsp,ziplist,start=False)
         await get_zip_choice(e,tsp,zipext,start=False,ext=True)
         is_zip = ziplist[1]
         is_ext = zipext[1]
-        
-        
+
+
         # Set rclone based on choice
-        if choice == "drive":
-            rclone = True
-        else:
-            rclone = False
-        
+        rclone = choice == "drive"
         await conf_mes.delete()
 
-        if rclone:
-            if get_val("RCLONE_ENABLED"):
-                await check_link(e,rclone, is_zip, is_ext)
-            else:
-                await e.reply("<b>DRIVE IS DISABLED BY THE ADMIN</b>",parse_mode="html")
+        if (
+            rclone
+            and get_val("RCLONE_ENABLED")
+            or not rclone
+            and get_val("LEECH_ENABLED")
+        ):
+            await check_link(e,rclone, is_zip, is_ext)
+        elif rclone and not get_val("RCLONE_ENABLED"):
+            await e.reply("<b>DRIVE IS DISABLED BY THE ADMIN</b>",parse_mode="html")
         else:
-            if get_val("LEECH_ENABLED"):
-                await check_link(e,rclone, is_zip, is_ext)
-            else:
-                await e.reply("<b>TG LEECH IS DISABLED BY THE ADMIN</b>",parse_mode="html")
+            await e.reply("<b>TG LEECH IS DISABLED BY THE ADMIN</b>",parse_mode="html")
 
 
 async def get_leech_choice(e,timestamp):
@@ -237,7 +234,7 @@ async def get_leech_choice(e,timestamp):
 
     lis = [False,None]
     cbak = partial(get_leech_choice_callback,o_sender=e.sender_id,lis=lis,ts=timestamp)
-    
+
     e.client.add_event_handler(
         #lambda e: test_callback(e,lis),
         cbak,
@@ -250,9 +247,7 @@ async def get_leech_choice(e,timestamp):
     while not lis[0]:
         if (time.time() - start) >= 60: #TIMEOUT_SEC:
             
-            if defleech == "leech":
-                return "tg"
-            elif defleech == "rclone":
+            if defleech == "rclone":
                 return "drive"
             else:
                 # just in case something goes wrong
@@ -261,7 +256,7 @@ async def get_leech_choice(e,timestamp):
         await aio.sleep(1)
 
     val = lis[1]
-    
+
     e.client.remove_event_handler(cbak)
 
     return val
@@ -349,11 +344,8 @@ async def handle_settings_command(e):
 
 async def handle_status_command(e):
     cmds = e.text.split(" ")
-    if len(cmds) > 1:
-        if cmds[1] == "all":
-            await get_status(e,True)
-        else:
-            await get_status(e)
+    if len(cmds) > 1 and cmds[1] == "all":
+        await get_status(e,True)
     else:
         await get_status(e)
         
@@ -370,13 +362,13 @@ async def handle_settings_cb(e):
         await e.answer("⚠️ WARN ⚠️ Dont Touch Admin Settings.",alert=True)
 
 async def handle_upcancel_cb(e):
-    db = upload_db
-
     data = e.data.decode("UTF-8")
     torlog.info("Data is {}".format(data))
     data = data.split(" ")
 
     if str(e.sender_id) == data[3]:
+        db = upload_db
+
         db.cancel_download(data[1],data[2])
         await e.answer("CANCLED UPLOAD")
     else:
@@ -482,16 +474,18 @@ async def upload_document_f(message):
         "processing ..."
     )
     imsegd = await message.client.get_messages(message.chat_id,ids=imsegd.id)
-    if await is_admin(message.client, message.sender_id, message.chat_id):
-        if " " in message.text:
-            recvd_command, local_file_name = message.text.split(" ", 1)
-            recvd_response = await upload_a_file(
-                local_file_name,
-                imsegd,
-                False,
-                upload_db
-            )
-            #torlog.info(recvd_response)
+    if (
+        await is_admin(message.client, message.sender_id, message.chat_id)
+        and " " in message.text
+    ):
+        recvd_command, local_file_name = message.text.split(" ", 1)
+        recvd_response = await upload_a_file(
+            local_file_name,
+            imsegd,
+            False,
+            upload_db
+        )
+        #torlog.info(recvd_response)
     await imsegd.delete()
 
 async def get_logs_f(e):
@@ -588,28 +582,21 @@ async def about_me(message):
 
     val1  = get_val("RCLONE_ENABLED")
     if val1 is not None:
-        if val1:
-            rclone = "Rclone enabled by admin."
-        else:
-            rclone = "Rclone disabled by admin."
+        rclone = "Rclone enabled by admin." if val1 else "Rclone disabled by admin."
     else:
         rclone = "N/A"
 
     val1  = get_val("LEECH_ENABLED")
-    if val1 is not None:
-        if val1:
-            leen = "Leech command enabled by admin."
-        else:
-            leen = "Leech command disabled by admin."
-    else:
+    if val1 is None:
         leen = "N/A"
 
+    elif val1:
+        leen = "Leech command enabled by admin."
+    else:
+        leen = "Leech command disabled by admin."
     val1  = get_val("RSTUFF")
     if val1 is not None:
-        if val1:
-            rclone_m = "Rclone mod is applied."
-        else:
-            rclone_m = "Rclone mod is not applied."
+        rclone_m = "Rclone mod is applied." if val1 else "Rclone mod is not applied."
     else:
         rclone_m = "N/A"
 
